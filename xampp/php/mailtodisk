@@ -1,0 +1,104 @@
+#!/bin/bash
+
+trap "rm -f /tmp/mailtodisk" EXIT
+
+if [ $# -gt 0 ]; then
+	case "$1" in
+	-a|--add)
+		shift
+		[ -n "$1" ] && touch "/etc/mailtodisk/$1"
+		;;
+	-h|--help)
+		echo "$0"
+		cat <<-EOF
+		  -a --add     user@mailbox.org
+		  -h --help
+		  -i --install
+		  -r --remove  user@mailbox.org
+		  -v --verbose
+
+		Email destination will be read from on or more files to be
+		matched against email "To:" and located in /etc/mailtodisk.
+
+		Currently, only a single receipient per message is supported.
+
+EOF
+		;;
+
+	-i|--install)
+			if [ -d /etc/mailtodisk ]; then
+				chmod 0777 /etc/mailtodisk
+			else
+				if [ -e /etc/mailtodisk ]; then
+					if ! [ -d /etc/mailtodisk ]; then
+						rm -rf /etc/mailtodisk
+					fi
+				fi
+
+				if ! [ -d /etc/mailtodisk ]; then
+					mkdir -m 777 /etc/mailtodisk
+				fi
+			fi
+		;;
+
+	-r|--remove)
+		shift
+		[ -n "$1" ] && rm "/etc/mailtodisk/$1"
+		;;
+	-v|--version)
+
+		stat=$(stat -c "%a %n" /etc/mailtodisk 2>&1 > /tmp/mailtodisk)
+
+		if [ $? -ne 0 ]; then
+			echo "$stat"
+			exit 2
+		else
+			while read perm file
+			do
+				if [ ! -d "$file" ]; then
+					echo "$file is not a directory."
+					exit 1
+				elif [ "$perm" != "777" ]; then
+					echo "$file: $perm (must have 777)."
+					exit 3
+				fi
+			done < /tmp/mailtodisk
+		fi
+
+		echo "$Rev: 1030 $" | sed -r 's/[^0-9]//g'
+		;;
+	*)
+		exit 0
+		;;
+	esac
+else
+	read line
+	to=$(sed -r 's/^To: (.*<)?([^>]+)>?/\2/g; /[a-z0-9.-]+@[a-z0-9.-]+\.[a-z]+/!q1' <<<"$line")
+
+	if [ $? -ne 0 ]; then
+		# rubbish
+		echo "Expected user@domain.tld, found \`$to\`." >&2
+		exit 1
+	else
+		if [ ! -f "/etc/mailtodisk/$to" ]; then
+			echo "No such mailbox: \`$to\`." >&2
+			exit 2
+		else
+			file=$(cat "/etc/mailtodisk/$to")
+
+			if [ -n "$file" ]; then
+				dir=$(dirname "$file")
+
+				if [ -d "$dir" ]; then
+					(
+						echo "Date: $(date --rfc-2822)"
+						echo "$line"
+						cat
+						echo "======================================================"
+					)>> "$file"
+					line=
+				fi
+			fi
+		fi
+	fi
+fi

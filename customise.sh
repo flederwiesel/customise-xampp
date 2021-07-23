@@ -210,7 +210,6 @@ mysqld=$(cygpath --windows "$xampp/mysql/bin/mysqld.exe")
 cd /tmp
 
 netsh advfirewall firewall add rule name="Apache HTTP Server" program="$httpd"  dir=in action=allow protocol=tcp localport=80
-netsh advfirewall firewall add rule name="Apache HTTP Server" program="$httpd"  dir=in action=allow protocol=tcp localport=80
 netsh advfirewall firewall add rule name="Apache HTTP Server" program="$httpd"  dir=in action=allow protocol=tcp localport=443
 netsh advfirewall firewall add rule name="Apache HTTP Server" program="$httpd"  dir=in action=allow protocol=tcp localport=8080
 netsh advfirewall firewall add rule name="Apache HTTP Server" program="$httpd"  dir=in action=allow protocol=tcp localport=8088
@@ -356,6 +355,10 @@ EOF
 
 	echo "DROP DATABASE IF EXISTS \`test\`;"
 )
+
+### webalizer ##################################################################
+
+echo "Sorry, no stats available (yet)." > "$xampp/htdocs/webalizer/index.htm"
 
 ### xampp-control.exe ##########################################################
 

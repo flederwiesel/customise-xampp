@@ -302,62 +302,73 @@ else
 fi
 
 mysql --user="$root" ${password:+--password="$password"} < <(
+
+	IFS=$'\n'
+
 	if [[ "${mysql_rename_root}" ]]; then
-		if [ "root" = "$root" ]; then
-			mysql --user="$root" ${password:+--password="$password"} <<-EOF
-				SELECT CONCAT("RENAME USER 'root'@'", \`Host\`, "' TO '$mysql_rename_root'@'", \`Host\`, "';")
+		hosts=($(
+			mysql --user="$root" ${password:+--password="$password"} --batch <<-EOF
+				SELECT \`Host\`
 				FROM \`mysql\`.\`user\`
 				WHERE \`User\` = 'root';
-
-				# Update DEFINER of views
-				SELECT CONCAT("ALTER DEFINER = '$mysql_rename_root'@'localhost' VIEW \`", \`TABLE_SCHEMA\`, "\`.\`", \`TABLE_NAME\`, "\` AS ", \`VIEW_DEFINITION\`, ";")
-				FROM \`information_schema\`.\`views\`
-				WHERE \`DEFINER\` = 'root@localhost';
 EOF
-			# Update DEFINER of stored procedures
-			echo "UPDATE \`mysql\`.\`proc\` p SET \`DEFINER\` = '$mysql_rename_root@%' WHERE \`DEFINER\` = 'root@%';"
-		fi
-	fi
+		))
 
-	if [[ "${mysql_users[@]}" ]]; then
-		for user in "${mysql_rename_root:-root}" "${mysql_users[@]}" pma
+		for host in "${hosts[@]}"
 		do
-			pass="mysql_password_$user"
-			pass="${!pass}"
-			pass="${pass//\'/\\\'}"
-
-			if [ "${mysql_rename_root:-root}" = "$user" ]; then
-				if [[ "$pass" ]]; then
-					mysql --user="$root" ${password:+--password="$password"} <<-EOF
-						SELECT CONCAT("ALTER USER '${mysql_rename_root:-root}'@'", \`Host\`, "' IDENTIFIED BY '$pass' PASSWORD EXPIRE NEVER;")
-						FROM \`mysql\`.\`user\`
-						WHERE \`User\` = '${mysql_rename_root:-root}'
+			# Update DEFINER of views
+			views=($(
+				mysql --user="$root" ${password:+--password="$password"} --batch <<-EOF
+					SELECT \`TABLE_SCHEMA\`, \`TABLE_NAME\`, \`VIEW_DEFINITION\`
+					FROM \`information_schema\`.\`views\`
+					WHERE \`DEFINER\` = 'root@$host';
 EOF
-				fi
-			else
+			))
 
-				echo "CREATE USER IF NOT EXISTS '$user'@'localhost';"
-				echo "ALTER USER '$user'@'localhost' IDENTIFIED BY '$pass' PASSWORD EXPIRE NEVER;"
+			echo "RENAME USER 'root'@'$host' TO '$mysql_rename_root'@'$host';"
 
-				if [ "$user" != "${mysql_rename_root:-root}" ]; then
-					grant="mysql_grant_$user"
-					grant="${!grant}"
-					echo "GRANT ${grant:-$mysql_grant__default} ON *.* TO '$user'@'localhost';"
-				fi
-
-				db="mysql_database_$user"
-				db="${!db}"
-
-				if [[ "$db" ]]; then
-					echo "CREATE DATABASE IF NOT EXISTS \`$db\`;"
-					echo "GRANT ALL PRIVILEGES ON \`$db\`.* TO '$user'@'localhost';"
-				fi
-			fi
+			for view in "${views[@]}"
+			do
+				IFS=$'\t' read schema name definition <<< "$view"
+				echo "ALTER DEFINER = '$mysql_rename_root'@'localhost' VIEW \`$schema\`.\`$name\` AS $definition;"
+			done
 		done
 	fi
 
-	echo "FLUSH PRIVILEGES;"
+	for user in "${mysql_users[@]}" "${mysql_rename_root:-root}"
+	do
+		pass="mysql_password_$user"
+		pass="${!pass}"
+		pass="${pass//\'/\\\'}"
 
+		if [ "${mysql_rename_root:-root}" = "$user" ]; then
+			if [[ "$pass" ]]; then
+				for host in "${hosts[@]}"
+				do
+					echo "ALTER USER '${mysql_rename_root:-root}'@'$host' IDENTIFIED BY '$pass' PASSWORD EXPIRE NEVER;"
+				done
+			fi
+		else
+			echo "CREATE USER IF NOT EXISTS '$user'@'localhost';"
+			echo "ALTER USER '$user'@'localhost' IDENTIFIED BY '$pass' PASSWORD EXPIRE NEVER;"
+
+			if [ "$user" != "${mysql_rename_root:-root}" ]; then
+				grant="mysql_grant_$user"
+				grant="${!grant}"
+				echo "GRANT ${grant:-$mysql_grant__default} ON *.* TO '$user'@'localhost';"
+			fi
+
+			db="mysql_database_$user"
+			db="${!db}"
+
+			if [[ "$db" ]]; then
+				echo "CREATE DATABASE IF NOT EXISTS \`$db\`;"
+				echo "GRANT ALL PRIVILEGES ON \`$db\`.* TO '$user'@'localhost';"
+			fi
+		fi
+	done
+
+	echo "FLUSH PRIVILEGES;"
 	echo "DROP DATABASE IF EXISTS \`test\`;"
 )
 

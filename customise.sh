@@ -382,3 +382,5 @@ sed "s/%{editor}/${editor:-notepad.exe}/g" \
 	"xampp/xampp-control.ini" > "$xampp/xampp-control.ini"
 
 chmod 666 "$xampp/xampp-control.ini"
+
+echo -e "\033[32m=== SUCCESS. ===\033[m"

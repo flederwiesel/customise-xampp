@@ -209,11 +209,16 @@ mysqld=$(cygpath --windows "$xampp/mysql/bin/mysqld.exe")
 
 cd /tmp
 
-netsh advfirewall firewall add rule name="Apache HTTP Server" program="$httpd"  \
-	dir=in action=allow protocol=tcp localport=80,443,8080,8088,8443,8888
+modify=
+netsh advfirewall firewall show rule name="Apache HTTP Server" && modify=set
+netsh advfirewall firewall ${modify:-add} rule name="Apache HTTP Server" ${modify:+new} \
+	program="$httpd" dir=in action=allow \
+	protocol=tcp localport=80,443,8080,8088,8443,8888
 
-netsh advfirewall firewall add rule name="mysqld"             program="$mysqld" \
-	dir=in action=allow protocol=tcp localport=3306
+modify=
+netsh advfirewall firewall show rule name="mysqld" && modify=set
+netsh advfirewall firewall ${modify:-add} rule name="mysqld" ${modify:+new} \
+	program="$mysqld" dir=in action=allow protocol=tcp localport=3306
 ) > /dev/null
 
 # Create services if not exist

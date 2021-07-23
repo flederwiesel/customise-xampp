@@ -271,6 +271,7 @@ done
 
 if mysql --user=root <<< '' &>/dev/null; then
 	root=root
+	password=
 else
 	if [[ "$mysql_rename_root" ]]; then
 		user="$mysql_rename_root"
@@ -293,6 +294,7 @@ else
 		# Try changed user name and empty password
 		if mysql --user="$user" <<< '' &>/dev/null; then
 			root="$user"
+			password=
 		else
 			exit $LINENO
 		fi

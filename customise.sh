@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Is user admin?
+id -G | grep -q '\<544\>' ||
+{
+	echo "This script must be run as admin." >&2
+	exit 1
+}
+
 ###### config files matching XAMPP Version 8.0.2 ######
 
 set -e

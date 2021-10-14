@@ -1,5 +1,22 @@
 #!/bin/bash
 
+for arg
+do
+	case "$arg" in
+	-h|--help)
+		cat <<"EOF"
+Usage:
+
+In an elevated shell run:
+
+  USERPROFILE=/home/$SUDO_USER /path/to/customise.sh
+
+EOF
+		exit
+		;;
+	esac
+done
+
 # Is user admin?
 id -G | grep -q '\<544\>' ||
 {

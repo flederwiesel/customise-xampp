@@ -7,7 +7,7 @@ id -G | grep -q '\<544\>' ||
 	exit 1
 }
 
-###### config files matching XAMPP Version 8.0.9 ######
+###### config files matching XAMPP Version 8.0.11 ######
 
 set -e
 

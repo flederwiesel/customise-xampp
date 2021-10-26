@@ -180,7 +180,7 @@ fi
 
 cp -r "xampp/phpMyAdmin/themes" "xampp/phpMyAdmin/favicon.ico" "$xampp/phpMyAdmin/"
 
-password="mysql_password_$mysql_rename_root"
+password="mysql_password_${mysql_rename_root:-root}"
 password="${!password}"
 
 sed "

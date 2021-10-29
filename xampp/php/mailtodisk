@@ -17,7 +17,7 @@ if [ $# -gt 0 ]; then
 		  -r --remove  user@mailbox.org
 		  -v --verbose
 
-		Email destination will be read from on or more files to be
+		Email destination will be read from one or more files to be
 		matched against email "To:" and located in /etc/mailtodisk.
 
 		Currently, only a single receipient per message is supported.

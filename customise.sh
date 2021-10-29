@@ -160,6 +160,8 @@ rm -f "$xampp/apache/conf/extra/httpd-userdir.conf"
 
 cp "xampp/php/mailtodisk" "$xampp/php/"
 
+"$xampp/php/mailtodisk" --install
+
 sed "$replace" "xampp/php/php.ini" > "$xampp/php/php.ini"
 
 if [[ "$php_debugger" ]]; then

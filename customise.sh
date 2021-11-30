@@ -199,6 +199,7 @@ for f in \
 	data/my.ini \
 
 do
+	[[ -d "$xampp/mysql/${f%/*}" ]] &&
 	sed "$replace
 		${mysql_data:+s|%{mysql_data}|$mysql_data}|g
 	" "xampp/mysql/$f" > "$xampp/mysql/$f"

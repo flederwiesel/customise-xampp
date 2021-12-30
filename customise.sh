@@ -164,6 +164,8 @@ cp "xampp/php/mailtodisk" "$xampp/php/"
 
 sed "$replace" "xampp/php/php.ini" > "$xampp/php/php.ini"
 
+[[ ${php_debugger[@]} ]] && cp "${php_debugger[@]}" "$xampp/php/ext"
+
 if [[ "$php_debugger" ]]; then
 	cat <<-EOF >> "$xampp/php/php.ini"
 		zend_extension = "$php_debugger"

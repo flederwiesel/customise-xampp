@@ -262,11 +262,23 @@ netsh advfirewall firewall ${modify:-add} rule name="mysqld" ${modify:+new} \
 
 echo -e "\033[36m(Re-)creating services ...\033[m"
 
+# Add user (is not exists) www in group www-data, remove www from Users group
+
+net localgroup "www-data" &>/dev/null || net localgroup /add "www-data" > /dev/null
+# Expand escape sequences
+password_www=$(echo -en "$password_www")
+# Use "/y" option to allow password longer than 14 characters:
+# https://serverfault.com/questions/452894/force-net-user-command-to-set-password-longer-than-14-characters
+net user "www" &>/dev/null || net user "www" "$password_www" /add /y /active:yes /passwordreq:yes /passwordchg:no > /dev/null
+wmic useraccount WHERE "Name='www'" set PasswordExpires=false > /dev/null
+net localgroup "www-data" | grep -q $'^www\r''$' || net localgroup "www-data" /add "www" > /dev/null
+net localgroup "Users"    | grep -q $'^www\r''$' && net localgroup "Users" /delete "www" > /dev/null
+
 {
 sc query Apache2.4 &>/dev/null && sc delete Apache2.4
 sc query mysql     &>/dev/null && sc delete mysql
 
-sc create Apache2.4 binPath= "$httpd -k runservice" start= auto
+sc create Apache2.4 binPath= "$httpd -k runservice" obj= '.\www' password= "$password_www" start= auto
 sc create mysql     binPath= "$mysqld --defaults-file=\"$xampp/mysql/bin/my.ini\" mysql" start= auto
 
 sc description Apache2.4 "XAMPP Apache 2.4.54 / OpenSSL 1.1.1p / PHP 7.4.33"

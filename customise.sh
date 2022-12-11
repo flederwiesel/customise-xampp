@@ -273,8 +273,11 @@ echo -e "\033[36mCreating services if not exist ...\033[m"
 
 cd /tmp
 
-sc query Apache2.4 &>/dev/null || sc create Apache2.4 binPath= "$httpd -k runservice" start= auto
-sc query mysql     &>/dev/null || sc create mysql     binPath= "$mysqld --defaults-file=\"$xampp/mysql/bin/my.ini\" mysql" start= auto
+sc query Apache2.4 &>/dev/null && sc delete Apache2.4
+sc query mysql     &>/dev/null && sc delete mysql
+
+sc create Apache2.4 binPath= "$httpd -k runservice" start= auto
+sc create mysql     binPath= "$mysqld --defaults-file=\"$xampp/mysql/bin/my.ini\" mysql" start= auto
 
 sc description Apache2.4 "XAMPP Apache 2.4.54 / OpenSSL 1.1.1p / PHP 7.4.33"
 sc description mysql     "XAMPP MariaDB 10.4.27"

@@ -52,6 +52,8 @@ source "$USERPROFILE/xampp.conf" && echo sourced "$USERPROFILE/xampp.conf"
 [ -f "$HOME/xampp.conf" ] && [ "$USERPROFILE" != "$HOME" ] &&
 source "$HOME/xampp.conf" && echo sourced "$HOME/xampp.conf"
 
+cd "$xampp"
+
 # Create base dirs
 
 for v in \
@@ -243,13 +245,7 @@ echo -e "\033[36mAdding firewall rules ...\033[m"
 httpd=$( cygpath --windows "$xampp/apache/bin/httpd.exe")
 mysqld=$(cygpath --windows "$xampp/mysql/bin/mysqld.exe")
 
-(
-# Error: Current working directory has restricted permissions which render it
-# inaccessible as Win32 working directory.
-# Can't start native Windows application from here.
-
-cd /tmp
-
+{
 modify=
 netsh advfirewall firewall show rule name="Apache HTTP Server" && modify=set
 netsh advfirewall firewall ${modify:-add} rule name="Apache HTTP Server" ${modify:+new} \
@@ -260,19 +256,13 @@ modify=
 netsh advfirewall firewall show rule name="mysqld" && modify=set
 netsh advfirewall firewall ${modify:-add} rule name="mysqld" ${modify:+new} \
 	program="$mysqld" dir=in action=allow protocol=tcp localport=3306
-) > /dev/null
+} > /dev/null
 
 # (Re-)create services
 
 echo -e "\033[36m(Re-)creating services ...\033[m"
 
-(
-# Error: Current working directory has restricted permissions which render it
-# inaccessible as Win32 working directory.
-# Can't start native Windows application from here.
-
-cd /tmp
-
+{
 sc query Apache2.4 &>/dev/null && sc delete Apache2.4
 sc query mysql     &>/dev/null && sc delete mysql
 
@@ -281,18 +271,11 @@ sc create mysql     binPath= "$mysqld --defaults-file=\"$xampp/mysql/bin/my.ini\
 
 sc description Apache2.4 "XAMPP Apache 2.4.54 / OpenSSL 1.1.1p / PHP 7.4.33"
 sc description mysql     "XAMPP MariaDB 10.4.27"
-)
+} > /dev/null
 
 # Start services
 
 echo -e "\033[36mStarting services ...\033[m"
-
-(
-# Error: Current working directory has restricted permissions which render it
-# inaccessible as Win32 working directory.
-# Can't start native Windows application from here.
-
-cd /tmp
 
 for s in Apache2.4 mysql
 do
@@ -310,7 +293,6 @@ do
 		echo
 	}
 done
-)
 
 ### post-install ###############################################################
 

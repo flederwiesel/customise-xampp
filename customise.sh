@@ -26,6 +26,18 @@ id -G | grep -q '\<544\>' ||
 
 ###### config files matching XAMPP Version 7.4.33 ######
 
+# Apache 2.4.54
+# MariaDB 10.4.27
+# PHP 7.4.33
+# phpMyAdmin 5.2.0
+# OpenSSL 1.1.1p
+# XAMPP Control Panel 3.2.4
+# Webalizer 2.23-04
+# Mercury Mail Transport System 4.63
+# FileZilla FTP Server 0.9.41
+# Tomcat 8.5.78 (with mod_proxy_ajp as connector)
+# Strawberry Perl 5.32.1.1 Portable
+
 set -e
 
 shopt -s expand_aliases
@@ -263,6 +275,9 @@ cd /tmp
 
 sc query Apache2.4 &>/dev/null || sc create Apache2.4 binPath= "$httpd -k runservice" start= auto
 sc query mysql     &>/dev/null || sc create mysql     binPath= "$mysqld --defaults-file=\"$xampp/mysql/bin/my.ini\" mysql" start= auto
+
+sc description Apache2.4 "XAMPP Apache 2.4.54 / OpenSSL 1.1.1p / PHP 7.4.33"
+sc description mysql     "XAMPP MariaDB 10.4.27"
 )
 
 # Start services

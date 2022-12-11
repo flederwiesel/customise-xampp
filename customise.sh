@@ -1,5 +1,7 @@
 #!/bin/bash
 
+readonly SCRIPTDIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
+
 for arg
 do
 	case "$arg" in
@@ -97,8 +99,6 @@ s|%{log}|${log}|g
 s|%{mysql_data}|${mysql_data}|g
 "
 
-cd $(dirname "$0")
-
 ### apache #####################################################################
 
 [[ $vhosts ]] ||
@@ -141,7 +141,7 @@ do
 		s|%{vhost}|${vhost}|g
 		s|%{DocumentRoot}|${!DocumentRoot}|g
 		s|%{curlrc}|${!curlrc:+\n\tSetEnv curlrc \"${!curlrc}\"\n}|g
-	" "xampp/apache/conf/extra/vhosts/vhost.conf" > \
+	" "$SCRIPTDIR/xampp/apache/conf/extra/vhosts/vhost.conf" > \
 	 "$xampp/apache/conf/extra/vhosts/${vhost}.conf"
 done
 
@@ -154,7 +154,7 @@ for f in \
 
 do
 	sed "$replace; s|%{vhost}|${vhost}|g" \
-		"xampp/apache/conf/${f}" > \
+		"$SCRIPTDIR/xampp/apache/conf/${f}" > \
 		"$xampp/apache/conf/${f}"
 done
 
@@ -162,7 +162,7 @@ for f in \
 	"extra/httpd-vhosts.conf" \
 
 do
-	cp "xampp/apache/conf/${f}" \
+	cp "$SCRIPTDIR/xampp/apache/conf/${f}" \
 	  "$xampp/apache/conf/${f}"
 done
 
@@ -170,11 +170,11 @@ rm -f "$xampp/apache/conf/extra/httpd-userdir.conf"
 
 ### php ########################################################################
 
-cp "xampp/php/mailtodisk" "$xampp/php/"
+cp "$SCRIPTDIR/xampp/php/mailtodisk" "$xampp/php/"
 
 "$xampp/php/mailtodisk" --install
 
-sed "$replace" "xampp/php/php.ini" > "$xampp/php/php.ini"
+sed "$replace" "$SCRIPTDIR/xampp/php/php.ini" > "$xampp/php/php.ini"
 
 [[ ${php_debugger[@]} ]] && cp "${php_debugger[@]}" "$xampp/php/ext"
 
@@ -194,7 +194,7 @@ fi
 
 ### phpMyAdmin #################################################################
 
-cp -r "xampp/phpMyAdmin/themes" "xampp/phpMyAdmin/favicon.ico" "$xampp/phpMyAdmin/"
+cp -r "$SCRIPTDIR/xampp/phpMyAdmin/themes" "$SCRIPTDIR/xampp/phpMyAdmin/favicon.ico" "$xampp/phpMyAdmin/"
 
 password="mysql_password_${mysql_rename_root:-root}"
 password="${!password}"
@@ -203,7 +203,7 @@ sed "
 	s|%{phpMyAdmin_secret}|$(head -c 16 /dev/urandom | base64)|g
 	s/%{root}/${mysql_rename_root:-root}/g
 	s/%{password}/$password/g
-" "xampp/phpMyAdmin/config.inc.php" > \
+" "$SCRIPTDIR/xampp/phpMyAdmin/config.inc.php" > \
  "$xampp/phpMyAdmin/config.inc.php"
 
 ### mysql ######################################################################
@@ -216,7 +216,7 @@ do
 	[[ -d "$xampp/mysql/${f%/*}" ]] &&
 	sed "$replace
 		${mysql_data:+s|%{mysql_data}|$mysql_data}|g
-	" "xampp/mysql/$f" > "$xampp/mysql/$f"
+	" "$SCRIPTDIR/xampp/mysql/$f" > "$xampp/mysql/$f"
 done
 
 rm -f "$xampp/mysql/data/"*.{err,pid,log}
@@ -426,7 +426,7 @@ echo "Sorry, no stats available (yet)." > "$xampp/htdocs/webalizer/index.htm"
 ### xampp-control.exe ##########################################################
 
 sed "s/%{editor}/${editor:-notepad.exe}/g" \
-	"xampp/xampp-control.ini" > "$xampp/xampp-control.ini"
+	"$SCRIPTDIR/xampp/xampp-control.ini" > "$xampp/xampp-control.ini"
 
 chmod 666 "$xampp/xampp-control.ini"
 

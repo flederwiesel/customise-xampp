@@ -262,9 +262,9 @@ netsh advfirewall firewall ${modify:-add} rule name="mysqld" ${modify:+new} \
 	program="$mysqld" dir=in action=allow protocol=tcp localport=3306
 ) > /dev/null
 
-# Create services if not exist
+# (Re-)create services
 
-echo -e "\033[36mCreating services if not exist ...\033[m"
+echo -e "\033[36m(Re-)creating services ...\033[m"
 
 (
 # Error: Current working directory has restricted permissions which render it

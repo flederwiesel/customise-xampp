@@ -250,12 +250,12 @@ modify=
 netsh advfirewall firewall show rule name="Apache HTTP Server" && modify=set
 netsh advfirewall firewall ${modify:-add} rule name="Apache HTTP Server" ${modify:+new} \
 	program="$httpd" dir=in action=allow edge=no \
-	protocol=tcp localport=80,443,8080,8088,8443,8888
+	protocol=tcp localport=80,443,8080,8088,8443,8888 remoteip=127.0.0.1
 
 modify=
 netsh advfirewall firewall show rule name="mysqld" && modify=set
 netsh advfirewall firewall ${modify:-add} rule name="mysqld" ${modify:+new} \
-	program="$mysqld" dir=in action=allow edge=no protocol=tcp localport=3306
+	program="$mysqld" dir=in action=allow edge=no protocol=tcp localport=3306 remoteip=127.0.0.1
 } > /dev/null
 
 # (Re-)create services

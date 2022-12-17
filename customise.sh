@@ -384,6 +384,16 @@ EOF
 
 		if [ "${mysql_rename_root:-root}" = "$user" ]; then
 			if [[ "$pass" ]]; then
+				# In a default installation, root is present on multiple hosts:
+				# localhost, 127.0.0.1, ::1,
+				hosts=($(
+					mysql --user="$root" ${password:+--password="$password"} --batch <<-EOF
+						SELECT \`Host\`
+						FROM \`mysql\`.\`user\`
+						WHERE \`User\` = 'root';
+EOF
+				))
+
 				for host in "${hosts[@]}"
 				do
 					echo "ALTER USER '${mysql_rename_root:-root}'@'$host' IDENTIFIED BY '$pass' PASSWORD EXPIRE NEVER;"

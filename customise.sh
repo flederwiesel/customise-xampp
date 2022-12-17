@@ -249,13 +249,13 @@ mysqld=$(cygpath --windows "$xampp/mysql/bin/mysqld.exe")
 modify=
 netsh advfirewall firewall show rule name="Apache HTTP Server" && modify=set
 netsh advfirewall firewall ${modify:-add} rule name="Apache HTTP Server" ${modify:+new} \
-	program="$httpd" dir=in action=allow \
+	program="$httpd" dir=in action=allow edge=no \
 	protocol=tcp localport=80,443,8080,8088,8443,8888
 
 modify=
 netsh advfirewall firewall show rule name="mysqld" && modify=set
 netsh advfirewall firewall ${modify:-add} rule name="mysqld" ${modify:+new} \
-	program="$mysqld" dir=in action=allow protocol=tcp localport=3306
+	program="$mysqld" dir=in action=allow edge=no protocol=tcp localport=3306
 } > /dev/null
 
 # (Re-)create services

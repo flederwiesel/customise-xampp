@@ -423,6 +423,8 @@ EOF
 	echo "DROP DATABASE IF EXISTS \`test\`;"
 )
 
+mysql --user="$root" ${password:+--password="$password"} --database=mysql < "$xampp/mysql/share/zoneinfo.sql"
+
 ### webalizer ##################################################################
 
 echo "Sorry, no stats available (yet)." > "$xampp/htdocs/webalizer/index.htm"

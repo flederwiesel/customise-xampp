@@ -1,5 +1,7 @@
 #!/bin/bash
 
+readonly SCRIPTDIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
+
 for arg
 do
 	case "$arg" in
@@ -44,6 +46,8 @@ source "$USERPROFILE/xampp.conf" && echo sourced "$USERPROFILE/xampp.conf"
 
 [ -f "$HOME/xampp.conf" ] && [ "$USERPROFILE" != "$HOME" ] &&
 source "$HOME/xampp.conf" && echo sourced "$HOME/xampp.conf"
+
+cd "$xampp"
 
 # Create base dirs
 
@@ -92,8 +96,6 @@ s|%{log}|${log}|g
 s|%{mysql_data}|${mysql_data}|g
 "
 
-cd $(dirname "$0")
-
 ### apache #####################################################################
 
 [[ $vhosts ]] ||
@@ -136,7 +138,7 @@ do
 		s|%{vhost}|${vhost}|g
 		s|%{DocumentRoot}|${!DocumentRoot}|g
 		s|%{curlrc}|${!curlrc:+\n\tSetEnv curlrc \"${!curlrc}\"\n}|g
-	" "xampp/apache/conf/extra/vhosts/vhost.conf" > \
+	" "$SCRIPTDIR/xampp/apache/conf/extra/vhosts/vhost.conf" > \
 	 "$xampp/apache/conf/extra/vhosts/${vhost}.conf"
 done
 
@@ -149,7 +151,7 @@ for f in \
 
 do
 	sed "$replace; s|%{vhost}|${vhost}|g" \
-		"xampp/apache/conf/${f}" > \
+		"$SCRIPTDIR/xampp/apache/conf/${f}" > \
 		"$xampp/apache/conf/${f}"
 done
 
@@ -157,7 +159,7 @@ for f in \
 	"extra/httpd-vhosts.conf" \
 
 do
-	cp "xampp/apache/conf/${f}" \
+	cp "$SCRIPTDIR/xampp/apache/conf/${f}" \
 	  "$xampp/apache/conf/${f}"
 done
 
@@ -165,11 +167,11 @@ rm -f "$xampp/apache/conf/extra/httpd-userdir.conf"
 
 ### php ########################################################################
 
-cp "xampp/php/mailtodisk" "$xampp/php/"
+cp "$SCRIPTDIR/xampp/php/mailtodisk" "$xampp/php/"
 
 "$xampp/php/mailtodisk" --install
 
-sed "$replace" "xampp/php/php.ini" > "$xampp/php/php.ini"
+sed "$replace" "$SCRIPTDIR/xampp/php/php.ini" > "$xampp/php/php.ini"
 
 [[ ${php_debugger[@]} ]] && cp "${php_debugger[@]}" "$xampp/php/ext"
 
@@ -189,7 +191,7 @@ fi
 
 ### phpMyAdmin #################################################################
 
-cp -r "xampp/phpMyAdmin/themes" "xampp/phpMyAdmin/favicon.ico" "$xampp/phpMyAdmin/"
+cp -r "$SCRIPTDIR/xampp/phpMyAdmin/themes" "$SCRIPTDIR/xampp/phpMyAdmin/favicon.ico" "$xampp/phpMyAdmin/"
 
 password="mysql_password_${mysql_rename_root:-root}"
 password="${!password}"
@@ -198,7 +200,7 @@ sed "
 	s|%{phpMyAdmin_secret}|$(head -c 16 /dev/urandom | base64)|g
 	s/%{root}/${mysql_rename_root:-root}/g
 	s/%{password}/$password/g
-" "xampp/phpMyAdmin/config.inc.php" > \
+" "$SCRIPTDIR/xampp/phpMyAdmin/config.inc.php" > \
  "$xampp/phpMyAdmin/config.inc.php"
 
 ### mysql ######################################################################
@@ -211,7 +213,7 @@ do
 	[[ -d "$xampp/mysql/${f%/*}" ]] &&
 	sed "$replace
 		${mysql_data:+s|%{mysql_data}|$mysql_data}|g
-	" "xampp/mysql/$f" > "$xampp/mysql/$f"
+	" "$SCRIPTDIR/xampp/mysql/$f" > "$xampp/mysql/$f"
 done
 
 rm -f "$xampp/mysql/data/"*.{err,pid,log}
@@ -238,53 +240,49 @@ echo -e "\033[36mAdding firewall rules ...\033[m"
 httpd=$( cygpath --windows "$xampp/apache/bin/httpd.exe")
 mysqld=$(cygpath --windows "$xampp/mysql/bin/mysqld.exe")
 
-(
-# Error: Current working directory has restricted permissions which render it
-# inaccessible as Win32 working directory.
-# Can't start native Windows application from here.
-
-cd /tmp
-
+{
 modify=
 netsh advfirewall firewall show rule name="Apache HTTP Server" && modify=set
 netsh advfirewall firewall ${modify:-add} rule name="Apache HTTP Server" ${modify:+new} \
-	program="$httpd" dir=in action=allow \
-	protocol=tcp localport=80,443,8080,8088,8443,8888
+	program="$httpd" dir=in action=allow edge=no \
+	protocol=tcp localport=80,443,8080,8088,8443,8888 remoteip=127.0.0.1
 
 modify=
 netsh advfirewall firewall show rule name="mysqld" && modify=set
 netsh advfirewall firewall ${modify:-add} rule name="mysqld" ${modify:+new} \
-	program="$mysqld" dir=in action=allow protocol=tcp localport=3306
-) > /dev/null
+	program="$mysqld" dir=in action=allow edge=no protocol=tcp localport=3306 remoteip=127.0.0.1
+} > /dev/null
 
-# Create services if not exist
+# (Re-)create services
 
-echo -e "\033[36mCreating services if not exist ...\033[m"
+echo -e "\033[36m(Re-)creating services ...\033[m"
 
-(
-# Error: Current working directory has restricted permissions which render it
-# inaccessible as Win32 working directory.
-# Can't start native Windows application from here.
+# Add user (is not exists) www in group www-data, remove www from Users group
 
-cd /tmp
+net localgroup "www-data" &>/dev/null || net localgroup /add "www-data" > /dev/null
+# Expand escape sequences
+password_www=$(echo -en "$password_www")
+# Use "/y" option to allow password longer than 14 characters:
+# https://serverfault.com/questions/452894/force-net-user-command-to-set-password-longer-than-14-characters
+net user "www" &>/dev/null || net user "www" "$password_www" /add /y /active:yes /passwordreq:yes /passwordchg:no > /dev/null
+wmic useraccount WHERE "Name='www'" set PasswordExpires=false > /dev/null
+net localgroup "www-data" | grep -q $'^www\r''$' || net localgroup "www-data" /add "www" > /dev/null
+net localgroup "Users"    | grep -q $'^www\r''$' && net localgroup "Users" /delete "www" > /dev/null
 
-sc query Apache2.4 &>/dev/null || sc create Apache2.4 binPath= "$httpd -k runservice" start= auto
-sc query mysql     &>/dev/null || sc create mysql     binPath= "$mysqld --defaults-file=\"$xampp/mysql/bin/my.ini\" mysql" start= auto
+{
+sc query Apache2.4 &>/dev/null && sc delete Apache2.4
+sc query mysql     &>/dev/null && sc delete mysql
+
+sc create Apache2.4 binPath= "$httpd -k runservice" obj= '.\www' password= "$password_www" start= auto
+sc create mysql     binPath= "$mysqld --defaults-file=\"$xampp/mysql/bin/my.ini\" mysql" start= auto
 
 sc description Apache2.4 "XAMPP Apache 2.4.51 / OpenSSL 1.1.1l / PHP 8.0.13"
-sc description mysql     "XAMPP MariaDB 10.4.22"
-)
+sc description mysql     "XAMPP MariaDB 10.4.27"
+} > /dev/null
 
 # Start services
 
 echo -e "\033[36mStarting services ...\033[m"
-
-(
-# Error: Current working directory has restricted permissions which render it
-# inaccessible as Win32 working directory.
-# Can't start native Windows application from here.
-
-cd /tmp
 
 for s in Apache2.4 mysql
 do
@@ -302,7 +300,6 @@ do
 		echo
 	}
 done
-)
 
 ### post-install ###############################################################
 
@@ -382,6 +379,16 @@ EOF
 
 		if [ "${mysql_rename_root:-root}" = "$user" ]; then
 			if [[ "$pass" ]]; then
+				# In a default installation, root is present on multiple hosts:
+				# localhost, 127.0.0.1, ::1,
+				hosts=($(
+					mysql --user="$root" ${password:+--password="$password"} --batch <<-EOF
+						SELECT \`Host\`
+						FROM \`mysql\`.\`user\`
+						WHERE \`User\` = 'root';
+EOF
+				))
+
 				for host in "${hosts[@]}"
 				do
 					echo "ALTER USER '${mysql_rename_root:-root}'@'$host' IDENTIFIED BY '$pass' PASSWORD EXPIRE NEVER;"
@@ -411,6 +418,8 @@ EOF
 	echo "DROP DATABASE IF EXISTS \`test\`;"
 )
 
+mysql --user="$root" ${password:+--password="$password"} --database=mysql < "$xampp/mysql/share/zoneinfo.sql"
+
 ### webalizer ##################################################################
 
 echo "Sorry, no stats available (yet)." > "$xampp/htdocs/webalizer/index.htm"
@@ -418,7 +427,7 @@ echo "Sorry, no stats available (yet)." > "$xampp/htdocs/webalizer/index.htm"
 ### xampp-control.exe ##########################################################
 
 sed "s/%{editor}/${editor:-notepad.exe}/g" \
-	"xampp/xampp-control.ini" > "$xampp/xampp-control.ini"
+	"$SCRIPTDIR/xampp/xampp-control.ini" > "$xampp/xampp-control.ini"
 
 chmod 666 "$xampp/xampp-control.ini"
 

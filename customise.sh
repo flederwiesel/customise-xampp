@@ -26,6 +26,13 @@ id -G | grep -q '\<544\>' ||
 
 ###### config files matching XAMPP Version 8.0.13 ######
 
+# Apache 2.4.51
+# OpenSSL 1.1.1l
+# PHP 8.0.13
+# phpMyAdmin  5.1.1
+# MariaDB 10.4.22
+# XAMPP Control Panel 3.3.0
+
 set -e
 
 shopt -s expand_aliases
@@ -263,6 +270,9 @@ cd /tmp
 
 sc query Apache2.4 &>/dev/null || sc create Apache2.4 binPath= "$httpd -k runservice" start= auto
 sc query mysql     &>/dev/null || sc create mysql     binPath= "$mysqld --defaults-file=\"$xampp/mysql/bin/my.ini\" mysql" start= auto
+
+sc description Apache2.4 "XAMPP Apache 2.4.51 / OpenSSL 1.1.1l / PHP 8.0.13"
+sc description mysql     "XAMPP MariaDB 10.4.22"
 )
 
 # Start services

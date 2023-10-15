@@ -418,6 +418,7 @@ EOF
 	echo "DROP DATABASE IF EXISTS \`test\`;"
 )
 
+cp "$SCRIPTDIR/xampp/mysql/share/zoneinfo.sql" "$xampp/mysql/share/"
 mysql --user="$root" ${password:+--password="$password"} --database=mysql < "$xampp/mysql/share/zoneinfo.sql"
 
 ### webalizer ##################################################################

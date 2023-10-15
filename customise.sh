@@ -418,6 +418,8 @@ EOF
 	echo "DROP DATABASE IF EXISTS \`test\`;"
 )
 
+# Use `mysql_tzinfo_to_sql /usr/share/zoneinfo > zoneinfo.sql` on a Linux host to create tz script
+cp "$SCRIPTDIR/xampp/mysql/share/zoneinfo.sql" "$xampp/mysql/share/"
 mysql --user="$root" ${password:+--password="$password"} --database=mysql < "$xampp/mysql/share/zoneinfo.sql"
 
 ### webalizer ##################################################################

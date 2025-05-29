@@ -26,7 +26,7 @@ id -G | grep -q '\<544\>' ||
 	exit 1
 }
 
-###### config files matching XAMPP Version 8.0.13 ######
+###### config files matching XAMPP Version 8.2.4 ######
 
 # Apache 2.4.56
 # MariaDB 10.4.28

@@ -427,7 +427,7 @@ echo "Sorry, no stats available (yet)." > "$xampp/htdocs/webalizer/index.htm"
 
 ### xampp-control.exe ##########################################################
 
-sed "s/%{editor}/${editor:-notepad.exe}/g" \
+sed "s|%{editor}|${editor:-notepad.exe}|g" \
 	"$SCRIPTDIR/xampp/xampp-control.ini" > "$xampp/xampp-control.ini"
 
 chmod 666 "$xampp/xampp-control.ini"
